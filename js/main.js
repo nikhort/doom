@@ -1,18 +1,31 @@
 // js/main.js
 import { Game } from './game.js';
 import { UI } from './ui.js';
-import { SaveSystem } from './save.js';
 import { AudioSystem } from './audio.js';
 
 class Engine {
     constructor() {
+        this.storageKey = 'doom_web_save';
         this.lastTime = 0;
         this.game = new Game();
         this.ui = new UI(this);
-        this.saveSystem = new SaveSystem();
         this.audioSystem = new AudioSystem();
         this.game.setAudioSystem(this.audioSystem);
         this.isRunning = false;
+    }
+
+    saveProgress(slot, data) {
+        const currentSaves = this.loadAllProgress();
+        currentSaves[slot] = data;
+        localStorage.setItem(this.storageKey, JSON.stringify(currentSaves));
+    }
+
+    loadProgress(slot) {
+        return this.loadAllProgress()[slot] || null;
+    }
+
+    loadAllProgress() {
+        return JSON.parse(localStorage.getItem(this.storageKey)) || { 1: null, 2: null, 3: null };
     }
 
     start() {

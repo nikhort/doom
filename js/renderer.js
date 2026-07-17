@@ -414,36 +414,45 @@ export class Renderer {
         const w = this.canvas.width;
         const h = this.canvas.height;
         const wm = game.weaponManager;
-        const recoilOffset = Math.floor(wm.recoil * 30);
+        const recoilOffset = Math.floor(wm.recoil * 35);
 
         this.ctx.save();
-        const gunWidth = Math.floor(w * 0.3);
-        const gunHeight = Math.floor(h * 0.45);
+        const gunWidth = Math.floor(w * 0.35);
+        const gunHeight = Math.floor(h * 0.5);
         const gunX = Math.floor((w - gunWidth) / 2);
         const gunY = h - gunHeight + recoilOffset;
 
         if (wm.currentWeapon === 'pistol') {
             this.ctx.fillStyle = '#4a5568';
-            this.ctx.fillRect(gunX + gunWidth * 0.35, gunY, gunWidth * 0.3, gunHeight);
+            this.ctx.fillRect(gunX + gunWidth * 0.38, gunY, gunWidth * 0.24, gunHeight);
             this.ctx.fillStyle = '#2b6cb0';
-            this.ctx.fillRect(gunX + gunWidth * 0.42, gunY + 20, gunWidth * 0.16, gunHeight * 0.5);
+            this.ctx.fillRect(gunX + gunWidth * 0.44, gunY + 20, gunWidth * 0.12, gunHeight * 0.5);
+        } else if (wm.currentWeapon === 'assault') {
+            this.ctx.fillStyle = '#2d3748';
+            this.ctx.fillRect(gunX + gunWidth * 0.3, gunY, gunWidth * 0.4, gunHeight);
+            this.ctx.fillStyle = '#4a5568';
+            this.ctx.fillRect(gunX + gunWidth * 0.4, gunY, gunWidth * 0.2, gunHeight * 0.8);
+            this.ctx.fillStyle = '#c53030';
+            this.ctx.fillRect(gunX + gunWidth * 0.45, gunY + 30, gunWidth * 0.1, 10);
+        } else if (wm.currentWeapon === 'chaingun') {
+            this.ctx.fillStyle = '#1a202c';
+            this.ctx.fillRect(gunX + gunWidth * 0.25, gunY, gunWidth * 0.5, gunHeight);
+            this.ctx.fillStyle = '#4a5568';
+            this.ctx.fillRect(gunX + gunWidth * 0.3, gunY, gunWidth * 0.1, gunHeight);
+            this.ctx.fillRect(gunX + gunWidth * 0.45, gunY, gunWidth * 0.1, gunHeight);
+            this.ctx.fillRect(gunX + gunWidth * 0.6, gunY, gunWidth * 0.1, gunHeight);
         } else if (wm.currentWeapon === 'shotgun') {
             this.ctx.fillStyle = '#2d3748';
             this.ctx.fillRect(gunX + gunWidth * 0.25, gunY, gunWidth * 0.22, gunHeight);
             this.ctx.fillRect(gunX + gunWidth * 0.53, gunY, gunWidth * 0.22, gunHeight);
-            this.ctx.fillStyle = '#1a202c';
+            this.ctx.fillStyle = '#742a2a';
             this.ctx.fillRect(gunX + gunWidth * 0.2, gunY + gunHeight * 0.4, gunWidth * 0.6, gunHeight * 0.6);
-        } else if (wm.currentWeapon === 'plasma') {
-            this.ctx.fillStyle = '#276749';
-            this.ctx.fillRect(gunX + gunWidth * 0.3, gunY, gunWidth * 0.4, gunHeight);
-            this.ctx.fillStyle = '#00ffff';
-            this.ctx.fillRect(gunX + gunWidth * 0.4, gunY + 10, gunWidth * 0.2, gunHeight * 0.7);
         }
 
         if (wm.recoil > 0.6) {
-            this.ctx.fillStyle = 'rgba(255, 200, 0, 0.8)';
+            this.ctx.fillStyle = 'rgba(255, 200, 0, 0.85)';
             this.ctx.beginPath();
-            this.ctx.arc(w / 2, gunY, gunWidth * 0.25, 0, Math.PI * 2);
+            this.ctx.arc(w / 2, gunY, gunWidth * 0.28, 0, Math.PI * 2);
             this.ctx.fill();
         }
         this.ctx.restore();
@@ -454,7 +463,7 @@ export class Renderer {
         const h = this.canvas.height;
 
         if (this.damageFlashTimer > 0) {
-            this.ctx.fillStyle = `rgba(255, 0, 0, ${0.3 * (this.damageFlashTimer / 200)})`;
+            this.ctx.fillStyle = `rgba(255, 0, 0, ${0.35 * (this.damageFlashTimer / 200)})`;
             this.ctx.fillRect(0, 0, w, h);
             this.damageFlashTimer -= 16;
         }

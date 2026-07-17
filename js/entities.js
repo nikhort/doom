@@ -8,7 +8,9 @@ export class Player {
         this.planeX = 0;
         this.planeY = 0.66;
         
-        this.moveSpeed = 0.004;
+        this.walkSpeed = 0.004;
+        this.runSpeed = 0.0065;
+        this.moveSpeed = this.walkSpeed;
         this.rotSpeed = 0.003;
         this.keys = {};
         
@@ -26,25 +28,28 @@ export class Player {
     update(dt, map, game) {
         if (game.victory || game.gameOver) return;
 
+        this.moveSpeed = (this.keys['shift'] || this.keys['shiftleft'] || this.keys['shiftright']) ? this.runSpeed : this.walkSpeed;
         const moveStep = this.moveSpeed * dt;
         const rotStep = this.rotSpeed * dt;
 
         let moveX = 0;
         let moveY = 0;
 
-        if (this.keys['w']) {
+        if (this.keys['w'] || this.keys['ц']) {
             moveX += this.dirX * moveStep;
             moveY += this.dirY * moveStep;
         }
-        if (this.keys['s']) {
+        if (this.keys['s'] || this.keys['ы']) {
             moveX -= this.dirX * moveStep;
             moveY -= this.dirY * moveStep;
         }
-        if (this.keys['a']) {
-            this.rotate(rotStep);
+        if (this.keys['d'] || this.keys['в']) {
+            moveX += this.dirY * moveStep;
+            moveY -= this.dirX * moveStep;
         }
-        if (this.keys['d']) {
-            this.rotate(-rotStep);
+        if (this.keys['a'] || this.keys['ф']) {
+            moveX -= this.dirY * moveStep;
+            moveY += this.dirX * moveStep;
         }
         if (this.keys['arrowleft']) {
             this.rotate(rotStep);
@@ -53,17 +58,14 @@ export class Player {
             this.rotate(-rotStep);
         }
 
-        if (this.keys['q']) {
-            moveX += this.dirY * moveStep;
-            moveY -= this.dirX * moveStep;
-        }
-        if (this.keys['e']) {
+        if (this.keys['e'] || this.keys['у']) {
             this.tryOpenDoor(map);
         }
 
-        if (this.keys['1']) game.weaponManager.switchWeapon('pistol');
-        if (this.keys['2']) game.weaponManager.switchWeapon('shotgun');
-        if (this.keys['3']) game.weaponManager.switchWeapon('plasma');
+        if (this.keys['1']) game.weaponManager.switchWeapon('pistol', game);
+        if (this.keys['2']) game.weaponManager.switchWeapon('assault', game);
+        if (this.keys['3']) game.weaponManager.switchWeapon('chaingun', game);
+        if (this.keys['4']) game.weaponManager.switchWeapon('shotgun', game);
 
         if (this.keys[' '] || this.keys['enter']) {
             game.fireWeapon();

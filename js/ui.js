@@ -7,6 +7,7 @@ export class UI {
         this.hudHealth = document.querySelector('.health');
         this.hudArmor = document.querySelector('.armor');
         this.hudAmmo = document.querySelector('.ammo');
+        this.isFiring = false;
     }
 
     init() {
@@ -51,6 +52,8 @@ export class UI {
         const slots = document.querySelectorAll('.slot');
         slots.forEach(slot => {
             slot.addEventListener('click', async (e) => {
+                const slotId = parseInt(e.currentTarget.dataset.slot);
+                this.engine.saveProgress(slotId, { level: this.selectedLevel });
                 this.engine.startGameplay(this.selectedLevel);
                 const canvas = document.getElementById('game-canvas');
                 if (canvas) {
@@ -66,10 +69,27 @@ export class UI {
         window.addEventListener('mousedown', (e) => {
             if (this.engine.isRunning && document.pointerLockElement === document.getElementById('game-canvas')) {
                 if (e.button === 0) {
+                    this.isFiring = true;
                     this.engine.game.fireWeapon();
                 }
             } else if (this.engine.isRunning && e.target.id === 'game-canvas') {
                 document.getElementById('game-canvas').requestPointerLock();
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) {
+                this.isFiring = false;
+            }
+        });
+
+        window.addEventListener('wheel', (e) => {
+            if (this.engine.isRunning && document.pointerLockElement === document.getElementById('game-canvas')) {
+                if (e.deltaY > 0) {
+                    this.engine.game.weaponManager.switchNext(this.engine.game);
+                } else if (e.deltaY < 0) {
+                    this.engine.game.weaponManager.switchPrev(this.engine.game);
+                }
             }
         });
 
@@ -87,7 +107,7 @@ export class UI {
     }
 
     updateSaveSlotsDisplay() {
-        const saves = this.engine.saveSystem ? this.engine.saveSystem.loadAll() : { 1: null, 2: null, 3: null };
+        const saves = this.engine.loadAllProgress();
         const slots = document.querySelectorAll('.slot');
         
         slots.forEach(slot => {
@@ -118,5 +138,9 @@ export class UI {
         if (this.hudHealth) this.hudHealth.textContent = Math.max(0, Math.floor(game.player.hp));
         if (this.hudArmor) this.hudArmor.textContent = Math.max(0, Math.floor(game.player.armor));
         if (this.hudAmmo) this.hudAmmo.textContent = game.weaponManager.getAmmoString();
+
+        if (this.isFiring && game.weaponManager.weapons[game.weaponManager.currentWeapon].auto) {
+            game.fireWeapon();
+        }
     }
 }
