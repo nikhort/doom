@@ -182,7 +182,7 @@ export class Enemy {
                 this.hp = 80;
                 this.maxHp = 80;
                 this.speed = 0.0022;
-                this.damage = 10;
+                this.damage = 8; // Снижено на 20%
                 this.attackRange = 10.0;
                 this.attackCooldown = 2200;
                 break;
@@ -190,7 +190,7 @@ export class Enemy {
                 this.hp = 120;
                 this.maxHp = 120;
                 this.speed = 0.0032;
-                this.damage = 25;
+                this.damage = 20; // Снижено на 20%
                 this.attackRange = 12.0;
                 this.attackCooldown = 2600;
                 break;
@@ -198,7 +198,7 @@ export class Enemy {
                 this.hp = 500;
                 this.maxHp = 500;
                 this.speed = 0.0025;
-                this.damage = 30;
+                this.damage = 24; // Снижено на 20%
                 this.attackRange = 14.0;
                 this.attackCooldown = 1800;
                 this.radius = 0.6;
@@ -277,10 +277,10 @@ export class Enemy {
                 this.fireProjectile(game, 'rocket', this.damage, 0.0055, true);
                 break;
             case 'boss':
-                this.fireProjectile(game, 'rocket', 25, 0.006, true);
+                this.fireProjectile(game, 'rocket', 20, 0.006, true); // Снижено с 25
                 setTimeout(() => {
                     if (!this.dead && !game.victory) {
-                        this.fireProjectile(game, 'plasma', 15, 0.009, false);
+                        this.fireProjectile(game, 'plasma', 12, 0.009, false); // Снижено с 15
                     }
                 }, 400);
                 break;
@@ -487,5 +487,55 @@ export class Particle {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.life -= dt;
+    }
+}
+
+export class Item {
+    constructor(x, y, type) {
+        this.x = x;
+        this.y = y;
+        this.type = type;
+        this.dead = false;
+        this.bobTimer = Math.random() * Math.PI * 2;
+    }
+
+    update(dt, game) {
+        if (this.dead) return;
+        this.bobTimer += dt * 0.003;
+
+        // Синяя сфера испускает небольшие частицы
+        if (this.type === 'sphere' && Math.random() < 0.05) {
+            game.particles.push(new Particle(
+                this.x + (Math.random() - 0.5) * 0.3,
+                this.y + (Math.random() - 0.5) * 0.3,
+                (Math.random() - 0.5) * 0.001, 
+                (Math.random() - 0.5) * 0.001,
+                '#00ffff',
+                2, 400
+            ));
+        }
+
+        const dist = Math.hypot(game.player.x - this.x, game.player.y - this.y);
+        if (dist < 0.6) {
+            this.pickup(game);
+        }
+    }
+
+    pickup(game) {
+        this.dead = true;
+        if (game.audioSystem) game.audioSystem.playSound('pickup');
+        game.renderer.triggerPickupFlash();
+        const p = game.player;
+
+        if (this.type === 'medkit') {
+            p.hp = Math.min(100, p.hp + 25);
+        } else if (this.type === 'armor') {
+            p.armor = Math.min(100, p.armor + 15);
+        } else if (this.type === 'sphere') {
+            p.hp = 100;
+            p.armor = 100;
+        } else if (this.type === 'ammo') {
+            game.weaponManager.addAmmo(game.weaponManager.currentWeapon);
+        }
     }
 }

@@ -50,6 +50,19 @@ export class WeaponManager {
         }
     }
 
+    addAmmo(weaponId) {
+        const w = this.weapons[weaponId];
+        if (weaponId === 'pistol' && w.ammo !== Infinity) {
+            w.ammo += 30;
+        } else if (weaponId === 'assault') {
+            w.ammo += 60;
+        } else if (weaponId === 'chaingun') {
+            w.ammo += 120;
+        } else if (weaponId === 'shotgun') {
+            w.ammo += 12;
+        }
+    }
+
     getAmmoString() {
         const w = this.weapons[this.currentWeapon];
         return w.ammo === Infinity ? "INF" : w.ammo.toString();

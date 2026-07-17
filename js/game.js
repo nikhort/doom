@@ -1,5 +1,5 @@
 // js/game.js
-import { Player, Enemy } from './entities.js';
+import { Player, Enemy, Item } from './entities.js';
 import { Renderer } from './renderer.js';
 import { WeaponManager } from './weapons.js';
 import { LEVELS } from './levels.js';
@@ -15,6 +15,7 @@ export class Game {
         this.enemies = [];
         this.projectiles = [];
         this.particles = [];
+        this.items = [];
         this.victory = false;
         this.gameOver = false;
         this.currentLevel = 1;
@@ -31,6 +32,7 @@ export class Game {
         this.gameOver = false;
         this.projectiles = [];
         this.particles = [];
+        this.items = [];
         this.resize();
         window.removeEventListener('resize', this.resizeHandler);
         this.resizeHandler = () => this.resize();
@@ -44,6 +46,7 @@ export class Game {
         this.map = JSON.parse(JSON.stringify(levelData.map));
         this.createPlayer(levelData);
         this.spawnEnemies(levelData);
+        this.spawnItems();
     }
 
     createPlayer(levelData) {
@@ -58,6 +61,49 @@ export class Game {
                 this.enemies.push(new Enemy(e.x, e.y, e.type));
             });
         }
+    }
+
+    spawnItems() {
+        this.items = [];
+        const emptySpots = [];
+        
+        // Поиск пустых ячеек вдали от стен
+        for (let x = 1; x < this.map.length - 1; x++) {
+            for (let y = 1; y < this.map[0].length - 1; y++) {
+                if (this.map[x][y] === 0) {
+                    let nearWall = false;
+                    for (let dx = -1; dx <= 1; dx++) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            const tile = this.map[x + dx][y + dy];
+                            if (tile !== 0 && tile !== 3 && tile !== 4) {
+                                nearWall = true;
+                            }
+                        }
+                    }
+                    if (!nearWall) {
+                        emptySpots.push({ x: x + 0.5, y: y + 0.5 });
+                    }
+                }
+            }
+        }
+        
+        // Перемешивание мест спавна
+        emptySpots.sort(() => Math.random() - 0.5);
+
+        const addItems = (type, min, max) => {
+            const count = Math.floor(Math.random() * (max - min + 1)) + min;
+            for (let i = 0; i < count; i++) {
+                if (emptySpots.length > 0) {
+                    const spot = emptySpots.pop();
+                    this.items.push(new Item(spot.x, spot.y, type));
+                }
+            }
+        };
+
+        addItems('medkit', 6, 10);
+        addItems('armor', 6, 10);
+        addItems('ammo', 4, 8);
+        addItems('sphere', 1, 2);
     }
 
     resize() {
@@ -97,6 +143,13 @@ export class Game {
 
         this.player.update(dt, this.map, this);
         this.weaponManager.update(dt);
+
+        for (let i = this.items.length - 1; i >= 0; i--) {
+            this.items[i].update(dt, this);
+            if (this.items[i].dead) {
+                this.items.splice(i, 1);
+            }
+        }
 
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             this.enemies[i].update(dt, this);

@@ -7,6 +7,7 @@ export class Renderer {
         this.ctx = ctx;
         this.zBuffer = [];
         this.damageFlashTimer = 0;
+        this.pickupFlashTimer = 0;
         this.initTextures();
     }
 
@@ -24,8 +25,36 @@ export class Renderer {
             boss: this.createBossTexture(),
             fireball: this.createProjectileTexture('#ff4500', '#ff8c00'),
             rocket: this.createProjectileTexture('#a0aec0', '#cbd5e0'),
-            plasma: this.createProjectileTexture('#00ffff', '#3182ce')
+            plasma: this.createProjectileTexture('#00ffff', '#3182ce'),
+            medkit: this.createItemTexture('#00aaff'),
+            armorItem: this.createItemTexture('#00ff00'),
+            blueSphere: this.createItemTexture('#0000ff'),
+            ammoItem: this.createItemTexture('#ffaa00')
         };
+    }
+
+    createItemTexture(color) {
+        const c = document.createElement('canvas');
+        c.width = 64;
+        c.height = 64;
+        const ctx = c.getContext('2d');
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = color;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(32, 32, 24, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.beginPath();
+        ctx.arc(32, 32, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillRect(16, 0, 8, 64);
+        ctx.fillRect(40, 0, 8, 64);
+        return c;
     }
 
     createWallTexture(baseColor, accentColor, isTech) {
@@ -154,6 +183,10 @@ export class Renderer {
 
     triggerDamageFlash() {
         this.damageFlashTimer = 200;
+    }
+
+    triggerPickupFlash() {
+        this.pickupFlashTimer = 150;
     }
 
     addBloodParticles(x, y, count = 12) {
@@ -328,6 +361,11 @@ export class Renderer {
             const dist = Math.hypot(player.x - proj.x, player.y - proj.y);
             renderList.push({ type: 'proj', entity: proj, dist: dist });
         }
+        for (let item of game.items) {
+            if (item.dead) continue;
+            const dist = Math.hypot(player.x - item.x, player.y - item.y);
+            renderList.push({ type: 'item', entity: item, dist: dist });
+        }
 
         renderList.sort((a, b) => b.dist - a.dist);
 
@@ -346,15 +384,8 @@ export class Renderer {
             const spriteHeight = Math.abs(Math.floor(h / transformY));
             const spriteWidth = Math.abs(Math.floor(h / transformY));
 
-            let drawStartY = -spriteHeight / 2 + h / 2;
-            if (drawStartY < 0) drawStartY = 0;
-            let drawEndY = spriteHeight / 2 + h / 2;
-            if (drawEndY >= h) drawEndY = h - 1;
-
-            let drawStartX = -spriteWidth / 2 + spriteScreenX;
-            if (drawStartX < 0) drawStartX = 0;
-            let drawEndX = spriteWidth / 2 + spriteScreenX;
-            if (drawEndX >= w) drawEndX = w - 1;
+            let scale = 1.0;
+            let vOffset = 0;
 
             let tex = this.textures.possessed;
             if (item.type === 'enemy') {
@@ -362,20 +393,48 @@ export class Renderer {
                 if (ent.type === 'soldier') tex = ent.shieldActive ? this.textures.soldierShield : this.textures.soldier;
                 if (ent.type === 'revenant') tex = this.textures.revenant;
                 if (ent.type === 'boss') tex = this.textures.boss;
-            } else {
+            } else if (item.type === 'proj') {
                 if (ent.type === 'fireball') tex = this.textures.fireball;
                 if (ent.type === 'rocket') tex = this.textures.rocket;
                 if (ent.type === 'plasma') tex = this.textures.plasma;
+            } else if (item.type === 'item') {
+                scale = 0.35; // Предметы небольшие: 35% от роста
+                vOffset = (spriteHeight * 0.4) + (Math.sin(ent.bobTimer) * spriteHeight * 0.1);
+                
+                if (ent.type === 'medkit') tex = this.textures.medkit;
+                if (ent.type === 'armor') tex = this.textures.armorItem;
+                if (ent.type === 'sphere') tex = this.textures.blueSphere;
+                if (ent.type === 'ammo') tex = this.textures.ammoItem;
             }
 
-            for (let stripe = Math.floor(drawStartX); stripe < drawEndX; stripe++) {
+            const drawHeight = spriteHeight * scale;
+            const drawWidth = spriteWidth * scale;
+
+            let drawStartY = -drawHeight / 2 + h / 2 + vOffset;
+            let drawEndY = drawStartY + drawHeight;
+            let drawStartX = -drawWidth / 2 + spriteScreenX;
+            let drawEndX = drawStartX + drawWidth;
+
+            const clipStartY = Math.max(0, drawStartY);
+            const clipEndY = Math.min(h - 1, drawEndY);
+            const clipStartX = Math.max(0, drawStartX);
+            const clipEndX = Math.min(w - 1, drawEndX);
+
+            for (let stripe = Math.floor(clipStartX); stripe < clipEndX; stripe++) {
                 if (stripe >= 0 && stripe < w && transformY < this.zBuffer[stripe]) {
-                    let texX = Math.floor((stripe - (-spriteWidth / 2 + spriteScreenX)) * tex.width / spriteWidth);
+                    let texX = Math.floor((stripe - drawStartX) * tex.width / drawWidth);
+                    
+                    // Плавное вращение для подбираемых предметов
+                    if (item.type === 'item') {
+                        texX = (texX + Math.floor(ent.bobTimer * 20)) % tex.width;
+                    }
+
                     texX = Math.max(0, Math.min(tex.width - 1, texX));
-                    this.ctx.drawImage(tex, texX, 0, 1, tex.height, stripe, drawStartY, 1, drawEndY - drawStartY);
+                    this.ctx.drawImage(tex, texX, 0, 1, tex.height, stripe, clipStartY, 1, clipEndY - clipStartY);
+                    
                     if (item.type === 'enemy' && ent.state === 'dying') {
                         this.ctx.fillStyle = 'rgba(155, 44, 44, 0.6)';
-                        this.ctx.fillRect(stripe, drawStartY, 1, drawEndY - drawStartY);
+                        this.ctx.fillRect(stripe, clipStartY, 1, clipEndY - clipStartY);
                     }
                 }
             }
@@ -417,9 +476,12 @@ export class Renderer {
         const recoilOffset = Math.floor(wm.recoil * 35);
 
         this.ctx.save();
-        const gunWidth = Math.floor(w * 0.35);
-        const gunHeight = Math.floor(h * 0.5);
-        const gunX = Math.floor((w - gunWidth) / 2);
+        // Оружие уменьшено примерно на 35%
+        const gunWidth = Math.floor(w * 0.23);
+        const gunHeight = Math.floor(h * 0.33);
+        
+        // Размещено в правом нижнем углу с небольшим отступом
+        const gunX = Math.floor(w - gunWidth - w * 0.02);
         const gunY = h - gunHeight + recoilOffset;
 
         if (wm.currentWeapon === 'pistol') {
@@ -449,10 +511,11 @@ export class Renderer {
             this.ctx.fillRect(gunX + gunWidth * 0.2, gunY + gunHeight * 0.4, gunWidth * 0.6, gunHeight * 0.6);
         }
 
+        // Вспышка выстрела отцентрована по текущей позиции оружия
         if (wm.recoil > 0.6) {
             this.ctx.fillStyle = 'rgba(255, 200, 0, 0.85)';
             this.ctx.beginPath();
-            this.ctx.arc(w / 2, gunY, gunWidth * 0.28, 0, Math.PI * 2);
+            this.ctx.arc(gunX + gunWidth * 0.5, gunY + gunHeight * 0.1, gunWidth * 0.28, 0, Math.PI * 2);
             this.ctx.fill();
         }
         this.ctx.restore();
@@ -466,6 +529,12 @@ export class Renderer {
             this.ctx.fillStyle = `rgba(255, 0, 0, ${0.35 * (this.damageFlashTimer / 200)})`;
             this.ctx.fillRect(0, 0, w, h);
             this.damageFlashTimer -= 16;
+        }
+
+        if (this.pickupFlashTimer > 0) {
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${0.4 * (this.pickupFlashTimer / 150)})`;
+            this.ctx.fillRect(0, 0, w, h);
+            this.pickupFlashTimer -= 16;
         }
 
         if (game.victory) {
