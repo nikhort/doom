@@ -1,3 +1,4 @@
+// js/save.js
 export class SaveSystem {
     constructor() {
         this.storageKey = 'doom_web_save';

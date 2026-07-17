@@ -1,12 +1,15 @@
+// js/ui.js
 export class UI {
     constructor(engine) {
         this.engine = engine;
         this.screens = document.querySelectorAll('.screen');
         this.selectedLevel = 1;
+        this.hudHealth = document.querySelector('.health');
+        this.hudArmor = document.querySelector('.armor');
+        this.hudAmmo = document.querySelector('.ammo');
     }
 
     init() {
-        // --- ГЛАВНОЕ МЕНЮ ---
         const btnCampaign = document.getElementById('btn-campaign');
         if (btnCampaign) {
             btnCampaign.addEventListener('click', () => {
@@ -14,8 +17,6 @@ export class UI {
             });
         }
 
-        // --- МЕНЮ КАМПАНИИ ---
-        // Кнопка "Назад"
         const btnBackCampaign = document.getElementById('btn-back-campaign');
         if (btnBackCampaign) {
             btnBackCampaign.addEventListener('click', () => {
@@ -23,7 +24,6 @@ export class UI {
             });
         }
 
-        // Выбор миссии (подсветка активной)
         const missions = document.querySelectorAll('.mission');
         missions.forEach(mission => {
             mission.addEventListener('click', (e) => {
@@ -33,7 +33,6 @@ export class UI {
             });
         });
 
-        // Кнопка "Играть" -> Переход к сохранениям
         const btnToSaves = document.getElementById('btn-to-saves');
         if (btnToSaves) {
             btnToSaves.addEventListener('click', () => {
@@ -42,8 +41,6 @@ export class UI {
             });
         }
 
-        // --- ЭКРАН СОХРАНЕНИЙ ---
-        // Кнопка "Назад"
         const btnBackSave = document.getElementById('btn-back-save');
         if (btnBackSave) {
             btnBackSave.addEventListener('click', () => {
@@ -51,26 +48,45 @@ export class UI {
             });
         }
 
-        // Выбор слота и старт игры
         const slots = document.querySelectorAll('.slot');
         slots.forEach(slot => {
             slot.addEventListener('click', async (e) => {
-                const slotId = parseInt(e.currentTarget.dataset.slot);
-                // Начинаем игру на выбранном уровне
                 this.engine.startGameplay(this.selectedLevel);
-                
-                // Захват курсора мыши (Pointer Lock API)
-                try {
-                    await document.body.requestPointerLock();
-                } catch (err) {
-                    console.warn("Pointer lock failed. Please interact with the document first.", err);
+                const canvas = document.getElementById('game-canvas');
+                if (canvas) {
+                    try {
+                        await canvas.requestPointerLock();
+                    } catch (err) {
+                        console.warn("Pointer lock failed:", err);
+                    }
                 }
             });
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (this.engine.isRunning && document.pointerLockElement === document.getElementById('game-canvas')) {
+                if (e.button === 0) {
+                    this.engine.game.fireWeapon();
+                }
+            } else if (this.engine.isRunning && e.target.id === 'game-canvas') {
+                document.getElementById('game-canvas').requestPointerLock();
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.engine.isRunning) {
+                if (document.pointerLockElement) {
+                    document.exitPointerLock();
+                }
+                if (this.engine.game.victory || this.engine.game.gameOver) {
+                    this.engine.stopGameplay();
+                    this.showScreen('campaign-menu');
+                }
+            }
         });
     }
 
     updateSaveSlotsDisplay() {
-        // Читаем сохранения (если система сохранений уже реализована в engine)
         const saves = this.engine.saveSystem ? this.engine.saveSystem.loadAll() : { 1: null, 2: null, 3: null };
         const slots = document.querySelectorAll('.slot');
         
@@ -94,8 +110,13 @@ export class UI {
         const targetScreen = document.getElementById(screenId);
         if (targetScreen) {
             targetScreen.classList.add('active');
-        } else {
-            console.error(`Screen with id "${screenId}" not found in DOM.`);
         }
+    }
+
+    updateHUD(game) {
+        if (!game || !game.player) return;
+        if (this.hudHealth) this.hudHealth.textContent = Math.max(0, Math.floor(game.player.hp));
+        if (this.hudArmor) this.hudArmor.textContent = Math.max(0, Math.floor(game.player.armor));
+        if (this.hudAmmo) this.hudAmmo.textContent = game.weaponManager.getAmmoString();
     }
 }
