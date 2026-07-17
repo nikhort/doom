@@ -11,6 +11,44 @@ export class UI {
     }
 
     init() {
+        const btnSettings = document.getElementById('btn-settings');
+        if (btnSettings) {
+            btnSettings.addEventListener('click', () => {
+                let settingsMenu = document.getElementById('settings-menu');
+                if (!settingsMenu) {
+                    settingsMenu = document.createElement('div');
+                    settingsMenu.id = 'settings-menu';
+                    settingsMenu.className = 'screen';
+                    settingsMenu.innerHTML = `
+                        <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; width:100%; height:100%; background:radial-gradient(circle, #2b0000 0%, #000000 100%);">
+                            <h2 style="font-size:3rem; color:var(--doom-red); margin-bottom:50px;">НАСТРОЙКИ</h2>
+                            <div style="margin-bottom:40px; text-align:center;">
+                                <label style="font-size:2rem; display:block; margin-bottom:20px;">Вид оружия</label>
+                                <select id="weapon-view-select" style="font-size:1.5rem; background:#000; color:#fff; border:2px solid var(--doom-red); padding:10px; font-family:inherit; cursor:pointer;">
+                                    <option value="modern">Современный</option>
+                                    <option value="classic">Классический</option>
+                                </select>
+                            </div>
+                            <button id="btn-back-settings" class="doom-btn">НАЗАД</button>
+                        </div>
+                    `;
+                    document.body.appendChild(settingsMenu);
+                    this.screens = document.querySelectorAll('.screen');
+                    
+                    const select = document.getElementById('weapon-view-select');
+                    select.value = localStorage.getItem('weapon_view') || 'modern';
+                    select.addEventListener('change', (e) => {
+                        localStorage.setItem('weapon_view', e.target.value);
+                    });
+                    
+                    document.getElementById('btn-back-settings').addEventListener('click', () => {
+                        this.showScreen('main-menu');
+                    });
+                }
+                this.showScreen('settings-menu');
+            });
+        }
+
         const btnCampaign = document.getElementById('btn-campaign');
         if (btnCampaign) {
             btnCampaign.addEventListener('click', () => {

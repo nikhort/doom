@@ -399,7 +399,7 @@ export class Renderer {
                 if (ent.type === 'plasma') tex = this.textures.plasma;
             } else if (item.type === 'item') {
                 scale = 0.35; // Предметы небольшие: 35% от роста
-                vOffset = (spriteHeight * 0.4) + (Math.sin(ent.bobTimer) * spriteHeight * 0.1);
+                vOffset = (spriteHeight * 0.4) + (Math.sin(ent.bobTimer) * 5);
                 
                 if (ent.type === 'medkit') tex = this.textures.medkit;
                 if (ent.type === 'armor') tex = this.textures.armorItem;
@@ -426,7 +426,7 @@ export class Renderer {
                     
                     // Плавное вращение для подбираемых предметов
                     if (item.type === 'item') {
-                        texX = (texX + Math.floor(ent.bobTimer * 20)) % tex.width;
+                        // Горизонтальное движение убрано
                     }
 
                     texX = Math.max(0, Math.min(tex.width - 1, texX));
@@ -480,8 +480,11 @@ export class Renderer {
         const gunWidth = Math.floor(w * 0.23);
         const gunHeight = Math.floor(h * 0.33);
         
-        // Размещено в правом нижнем углу с небольшим отступом
-        const gunX = Math.floor(w - gunWidth - w * 0.02);
+        // Размещено в правом нижнем углу с небольшим отступом (или по центру для классики)
+        let gunX = Math.floor(w - gunWidth - w * 0.02);
+        if (localStorage.getItem('weapon_view') === 'classic') {
+            gunX = Math.floor((w - gunWidth) / 2);
+        }
         const gunY = h - gunHeight + recoilOffset;
 
         if (wm.currentWeapon === 'pistol') {
